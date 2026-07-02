@@ -1,0 +1,266 @@
+openapi: 3.0.3
+info:
+  title: FinControl API
+  version: 1.0.0
+  description: API REST para gestao financeira pessoal com autenticacao JWT, dashboards, metas, reservas e relatorios.
+servers:
+  - url: http://127.0.0.1:5000
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Login:
+      type: object
+      example: { email: admin@fincontrol.local, senha: "123456" }
+    UsuarioCreate:
+      type: object
+      example: { nome: Administrador, email: admin@fincontrol.local, senha: "123456", renda_mensal: 4500, objetivo: investir }
+    Receita:
+      type: object
+      example: { descricao: Salario, valor: 7500, categoria: Trabalho, data_recebimento: "2026-06-05" }
+    DespesaFixa:
+      type: object
+      example: { descricao: Aluguel, categoria: Moradia, valor_previsto: 2200, valor_pago: 2200, vencimento: "2026-06-10", status: pago }
+    DespesaVariavel:
+      type: object
+      example: { descricao: Mercado, categoria: Alimentacao, valor_previsto: 900, valor_pago: 860, data: "2026-06-14" }
+    Cartao:
+      type: object
+      example: { nome_cartao: Nubank Platinum, limite: 8000, fechamento: 20, vencimento: 28 }
+    Fatura:
+      type: object
+      example: { cartao_id: 1, descricao: Farmacia, valor: 120, status: aberta }
+    Reserva:
+      type: object
+      example: { tipo_reserva: Emergencia, valor: 1500, data_aporte: "2026-06-15" }
+    Meta:
+      type: object
+      example: { titulo: Viagem, valor_meta: 40000, valor_atual: 6000, valor_planejado_mensal: 300, tipo_meta: economia, prazo: "2027-12-31" }
+    DividaParcelada:
+      type: object
+      example: { descricao: Notebook, valor_total: 4800, total_parcelas: 12, data_inicial: "2026-07-10" }
+    AporteInvestimento:
+      type: object
+      example: { valor: 500, data_aporte: "2026-08-05" }
+    Error:
+      type: object
+      example: { erro: Mensagem de erro }
+    Dashboard:
+      type: object
+      example:
+        receita_prevista: 9000
+        despesa_prevista: 3840
+        saldo_previsto: 4884
+        total_pago: 3750
+        total_pendente: 90
+        total_cartoes: 276
+        economia_mes: 4884
+        percentual_economia: 54.27
+        alerta_limite: false
+    ReservaEmergencia:
+      type: object
+      example:
+        media_despesas_mensais: 596
+        reserva_ideal: 3576
+        valor_atual: 8500
+        valor_faltante: 0
+        percentual: 237.7
+  responses:
+    Unauthorized:
+      description: Token ausente ou invalido
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Registro nao encontrado
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadRequest:
+      description: Dados invalidos ou campos obrigatorios ausentes
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: Restricao de unicidade ou integridade violada
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+paths:
+  /register:
+    post:
+      security: []
+      summary: Cadastra usuario
+      description: Cria uma conta e retorna token JWT.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/UsuarioCreate" } } } }
+      responses: { "201": { description: Usuario criado }, "400": { $ref: "#/components/responses/BadRequest" }, "409": { $ref: "#/components/responses/Conflict" } }
+  /login:
+    post:
+      security: []
+      summary: Autentica usuario
+      description: Valida email e senha e retorna token JWT.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/Login" } } } }
+      responses: { "200": { description: Login realizado }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { description: Credenciais invalidas } }
+  /logout:
+    post:
+      summary: Encerra sessao
+      description: Confirma logout; a remocao real do token acontece no cliente.
+      responses: { "200": { description: Logout confirmado }, "401": { $ref: "#/components/responses/Unauthorized" } }
+  /usuarios:
+    get:
+      summary: Lista usuarios
+      description: Retorna todos os usuarios cadastrados.
+      responses: { "200": { description: Lista de usuarios }, "401": { $ref: "#/components/responses/Unauthorized" } }
+  /usuario/{id}:
+    get:
+      summary: Consulta usuario
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses: { "200": { description: Usuario encontrado }, "404": { $ref: "#/components/responses/NotFound" } }
+    put:
+      summary: Atualiza usuario
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/UsuarioCreate" } } } }
+      responses: { "200": { description: Usuario atualizado }, "404": { $ref: "#/components/responses/NotFound" } }
+    delete:
+      summary: Remove usuario
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses: { "200": { description: Usuario removido }, "404": { $ref: "#/components/responses/NotFound" } }
+  /receitas:
+    post: { summary: Cria receita, description: Registra receita do usuario autenticado., requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Receita" } } } }, responses: { "201": { description: Receita criada } } }
+    get: { summary: Lista receitas, description: Lista receitas do usuario autenticado., responses: { "200": { description: Lista de receitas } } }
+  /receitas/{id}:
+    get: { summary: Consulta receita, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], responses: { "200": { description: Receita encontrada }, "404": { $ref: "#/components/responses/NotFound" } } }
+    put: { summary: Atualiza receita, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Receita" } } } }, responses: { "200": { description: Receita atualizada } } }
+    delete: { summary: Remove receita, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], responses: { "200": { description: Receita removida } } }
+  /despesas-fixas:
+    post: { summary: Cria despesa fixa, requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/DespesaFixa" } } } }, responses: { "201": { description: Despesa fixa criada } } }
+    get: { summary: Lista despesas fixas, responses: { "200": { description: Lista de despesas fixas } } }
+  /despesas-fixas/{id}:
+    put: { summary: Atualiza despesa fixa, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/DespesaFixa" } } } }, responses: { "200": { description: Despesa atualizada } } }
+    delete: { summary: Remove despesa fixa, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], responses: { "200": { description: Despesa removida } } }
+  /despesas-variaveis:
+    post: { summary: Cria despesa variavel, requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/DespesaVariavel" } } } }, responses: { "201": { description: Despesa variavel criada } } }
+    get: { summary: Lista despesas variaveis, responses: { "200": { description: Lista de despesas variaveis } } }
+  /despesas-variaveis/{id}:
+    put: { summary: Atualiza despesa variavel, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/DespesaVariavel" } } } }, responses: { "200": { description: Despesa atualizada } } }
+    delete: { summary: Remove despesa variavel, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], responses: { "200": { description: Despesa removida } } }
+  /cartoes:
+    post: { summary: Cria cartao, requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Cartao" } } } }, responses: { "201": { description: Cartao criado } } }
+    get: { summary: Lista cartoes, responses: { "200": { description: Lista de cartoes } } }
+  /cartoes/{id}:
+    put: { summary: Atualiza cartao, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Cartao" } } } }, responses: { "200": { description: Cartao atualizado } } }
+    delete: { summary: Remove cartao, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], responses: { "200": { description: Cartao removido } } }
+  /cartoes/fatura:
+    post: { summary: Cria item de fatura, requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Fatura" } } } }, responses: { "201": { description: Fatura criada } } }
+  /cartoes/faturas:
+    get: { summary: Lista faturas, responses: { "200": { description: Lista de faturas } } }
+  /cartoes/fatura/{id}:
+    put: { summary: Atualiza fatura, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Fatura" } } } }, responses: { "200": { description: Fatura atualizada } } }
+    delete: { summary: Remove fatura, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], responses: { "200": { description: Fatura removida } } }
+  /reservas:
+    post: { summary: Cria reserva, requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Reserva" } } } }, responses: { "201": { description: Reserva criada } } }
+    get: { summary: Lista reservas, responses: { "200": { description: Lista de reservas } } }
+  /reservas/{id}:
+    put: { summary: Atualiza reserva, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Reserva" } } } }, responses: { "200": { description: Reserva atualizada } } }
+    delete: { summary: Remove reserva, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], responses: { "200": { description: Reserva removida } } }
+  /metas:
+    post: { summary: Cria meta, requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Meta" } } } }, responses: { "201": { description: Meta criada } } }
+    get: { summary: Lista metas, responses: { "200": { description: Lista de metas com percentual } } }
+  /metas/{id}:
+    put: { summary: Atualiza meta, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/Meta" } } } }, responses: { "200": { description: Meta atualizada } } }
+    delete: { summary: Remove meta, parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ], responses: { "200": { description: Meta removida } } }
+  /dividas-parceladas:
+    post:
+      summary: Cria divida parcelada
+      description: Cria o agrupamento da divida e todas as parcelas futuras, ajustando mes e ano automaticamente.
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/DividaParcelada" } } } }
+      responses: { "201": { description: Divida e parcelas criadas }, "400": { $ref: "#/components/responses/BadRequest" } }
+    get:
+      summary: Lista dividas parceladas
+      responses: { "200": { description: Dividas com parcelas, total pago e total pendente } }
+  /dividas-parceladas/parcelas:
+    get:
+      summary: Lista parcelas de dividas
+      parameters: [ { name: status, in: query, schema: { type: string, enum: [pendente, pago] } } ]
+      responses: { "200": { description: Parcelas futuras e historicas } }
+  /dividas-parceladas/parcela/{id}:
+    put:
+      summary: Atualiza parcela de divida
+      description: Permite marcar parcela como paga ou pendente e ajustar vencimento/valor.
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses: { "200": { description: Parcela atualizada }, "404": { $ref: "#/components/responses/NotFound" } }
+    delete:
+      summary: Remove parcela de divida
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses: { "200": { description: Parcela removida }, "404": { $ref: "#/components/responses/NotFound" } }
+  /dividas-parceladas/{id}:
+    put:
+      summary: Atualiza divida parcelada completa
+      description: Atualiza descricao, valor total, quantidade de parcelas, data inicial e opcionalmente regenera todas as parcelas.
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/DividaParcelada" } } } }
+      responses: { "200": { description: Divida atualizada }, "404": { $ref: "#/components/responses/NotFound" } }
+    delete:
+      summary: Remove divida parcelada completa
+      description: Remove o agrupamento e todas as suas parcelas.
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses: { "200": { description: Divida removida }, "404": { $ref: "#/components/responses/NotFound" } }
+  /metas/{id}/aportes:
+    post:
+      summary: Registra aporte em meta de investimento
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      requestBody: { content: { application/json: { schema: { $ref: "#/components/schemas/AporteInvestimento" } } } }
+      responses: { "201": { description: Aporte registrado e previsao recalculada }, "400": { $ref: "#/components/responses/BadRequest" } }
+    get:
+      summary: Lista aportes da meta
+      parameters: [ { name: id, in: path, required: true, schema: { type: integer } } ]
+      responses: { "200": { description: Aportes da meta de investimento } }
+  /metas/{id}/aportes/{aporte_id}:
+    delete:
+      summary: Remove aporte de investimento
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+        - { name: aporte_id, in: path, required: true, schema: { type: integer } }
+      responses: { "200": { description: Aporte removido e previsao recalculada } }
+  /dashboard:
+    get:
+      summary: Dashboard financeiro
+      description: Retorna cards, alertas, graficos, metas, projecao e reserva de emergencia. Aceita filtros mes, ano e categoria.
+      parameters:
+        - { name: mes, in: query, schema: { type: integer } }
+        - { name: ano, in: query, schema: { type: integer } }
+        - { name: categoria, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Dados consolidados do dashboard
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /saldo-atual:
+    get: { summary: Saldo atual, responses: { "200": { description: Saldo atual previsto } } }
+  /resumo-mensal:
+    get: { summary: Resumo mensal, parameters: [ { name: ano, in: query, schema: { type: integer } } ], responses: { "200": { description: Resumo dos 12 meses } } }
+  /resumo-anual:
+    get: { summary: Resumo anual, responses: { "200": { description: Resumo por ano } } }
+  /gastos-por-categoria:
+    get: { summary: Gastos por categoria, parameters: [ { name: mes, in: query, schema: { type: integer } }, { name: ano, in: query, schema: { type: integer } } ], responses: { "200": { description: Categorias e valores } } }
+  /percentual-economia:
+    get: { summary: Percentual de economia, responses: { "200": { description: Percentual calculado e alerta de limite } } }
+  /projecao-gastos:
+    get: { summary: Projecao de gastos, parameters: [ { name: meses, in: query, schema: { type: integer, default: 6 } } ], responses: { "200": { description: Media historica projetada } } }
+  /reserva-emergencia:
+    get:
+      summary: Reserva de emergencia
+      responses:
+        "200":
+          description: Reserva ideal, atual, faltante e percentual
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReservaEmergencia" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
