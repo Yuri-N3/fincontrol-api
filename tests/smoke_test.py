@@ -28,7 +28,7 @@ def main():
     auth = assert_ok(
         client.post(
             "/register",
-            json={"nome": "Ana Silva", "email": "ana@fincontrol.com", "senha": "123456"},
+            json={"nome": "Administrador", "email": "admin@fincontrol.local", "senha": "123456"},
         ),
         201,
     )

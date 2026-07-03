@@ -112,7 +112,7 @@ As rotas retornam erros em JSON:
 ```bash
 curl -X POST http://127.0.0.1:5000/register \
   -H "Content-Type: application/json" \
-  -d '{"nome":"Ana","email":"ana@fincontrol.com","senha":"123456"}'
+  -d '{"nome":"Administrador","email":"admin@fincontrol.local","senha":"123456","renda_mensal":4500,"objetivo":"organizar"}'
 ```
 
 ## Estrutura
